@@ -1,0 +1,107 @@
+---
+title: "PML_PGA"
+author: "Nilu"
+date: "July 25, 2017"
+output:
+  md_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Practical Machine Learning Assignment
+
+## Introduction
+
+After loading the file and looking at the summary of the training data it was concluded that that there are 19622 rows with 160 varaibles, out of which the the first 6 are user details ond around 100 columns have more that 25% missing data.  
+
+```{r}
+training = read.csv("C:\\Users\\nilak\\Desktop\\R Material\\pml-training.csv")
+testing = read.csv("C:\\Users\\nilak\\Desktop\\R Material\\pml-testing.csv")
+```
+
+### Cleaning the dataset
+
+Column containing user timestamps are removed. All the other columns containing NA are also deleted. This leaves us with 54 columns out of which our dependent column is classe with 5 categories.
+
+```{r}
+training1 = training[ , colSums(is.na(training)) == 0]
+training1 = training1[,-(1:6)]
+training1 = training1[,-(6:14)]
+training1 = training1[,-(28:33)]
+training1 = training1[,-(31:39)]
+training1 = training1[,-(44:52)]
+```
+
+### Creating a cross validation set
+
+The trainig set has been split into two different sets. 80 percent is for building the model and 20 percent is for cross validation.
+
+```{r}
+smp_size <- floor(0.8 * nrow(training1))
+set.seed(123)
+train_index <- sample(seq_len(nrow(training1)), size = smp_size)
+train_data <- training1[train_index, ]
+cv_data <- training1[-train_index, ]
+```
+
+### Train the model using random forest
+
+After testing various models random forest was selected for being the most accurate and fast.
+
+```{r}
+library(caret)
+library(randomForest)
+model = randomForest(classe~. ,data = train_data)
+```
+
+### Prediction on the cross validation set
+
+As we can see from the confusion matrix the prediction for class A and E is 100% and for the rest of the classes it is nearly equal to 100%  
+
+```{r}
+library(e1071)
+pred <- predict(model, cv_data)
+table(pred, cv_data$classe)
+```
+### Overall Accuray
+
+Overall accuracy of the model on out of sample data is 0.99.
+
+```{r}
+cm = confusionMatrix(pred, cv_data$classe)
+cm$overall['Accuracy']
+```
+
+### Recal and F1 fro all the classes
+
+```{r}
+cm$byClass
+```
+
+## Working on the test data set
+
+Cleaning the test set is important before using the model for prediction.
+
+```{r}
+testing1 = testing[ , colSums(is.na(training)) == 0]
+testing1 = testing1[,-(1:6)]
+testing1 = testing1[,-(6:14)]
+testing1 = testing1[,-(28:33)]
+testing1 = testing1[,-(31:39)]
+testing1 = testing1[,-(44:52)]
+
+```
+
+### Predicting on the test set
+
+The prediction of the test set has given 100% accuracy.
+
+```{r}
+pred_test = predict(model,testing1)
+summary(pred_test)
+```
+
